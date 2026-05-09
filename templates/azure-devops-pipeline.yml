@@ -1,0 +1,60 @@
+trigger:
+  branches:
+    include:
+      - main
+      - develop
+
+pool:
+  vmImage: ubuntu-latest
+
+stages:
+  - stage: PerformanceTests
+    displayName: Performance Tests (PRESTO-CORE)
+    jobs:
+      - job: GenerateAndRun
+        displayName: Generate NFR tests and validate SLOs
+        steps:
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: '3.11'
+
+          - script: pip install presto-core
+            displayName: Install PRESTO-CORE
+
+          - script: |
+              curl https://github.com/grafana/k6/releases/download/v0.50.0/k6-v0.50.0-linux-amd64.tar.gz -L | tar xvz
+              sudo mv k6-v0.50.0-linux-amd64/k6 /usr/local/bin/
+            displayName: Install K6
+
+          - script: |
+              presto generate \
+                --nfr-dir $(System.DefaultWorkingDirectory)/nfrs \
+                --output-dir $(System.DefaultWorkingDirectory)/perf-tests
+            displayName: Generate performance tests from NFRs
+
+          - script: |
+              for test in $(System.DefaultWorkingDirectory)/perf-tests/*.js; do
+                name=$(basename $test .js)
+                k6 run "$test" \
+                  -e BASE_URL=$(STAGING_URL) \
+                  --out json=$(System.DefaultWorkingDirectory)/results-${name}.json
+              done
+            displayName: Run performance tests
+            env:
+              STAGING_URL: $(STAGING_URL)
+
+          - script: |
+              for nfr in $(System.DefaultWorkingDirectory)/nfrs/*.yaml; do
+                service=$(basename $nfr .yaml)
+                results="$(System.DefaultWorkingDirectory)/results-${service}_load_test.json"
+                if [ -f "$results" ]; then
+                  presto validate --results "$results" --nfr "$nfr"
+                fi
+              done
+            displayName: Validate SLO thresholds
+
+          - task: PublishBuildArtifacts@1
+            condition: always()
+            inputs:
+              pathToPublish: $(System.DefaultWorkingDirectory)/results-*.json
+              artifactName: presto-performance-results
