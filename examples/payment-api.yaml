@@ -1,0 +1,27 @@
+# NFR: Payment Processing API
+# High-volume payment processing with spike pattern
+# Models correlated institutional demand events (paydays, disbursements)
+
+service: payment-api
+endpoint: /v1/payments/process
+
+slo:
+  p99_response_ms: 500
+  p95_response_ms: 350
+  p50_response_ms: 150
+  error_rate_pct: 0.5
+  throughput_rps: 5000
+
+load:
+  peak_users: 100000
+  ramp_duration_seconds: 120
+  steady_state_seconds: 300
+  ramp_down_seconds: 60
+  load_pattern: spike
+
+environment: staging
+
+tags:
+  team: payments
+  priority: p1
+  last_reviewed: "2026-05-07"
