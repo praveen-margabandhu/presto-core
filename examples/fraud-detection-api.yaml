@@ -1,0 +1,24 @@
+# NFR: Fraud Detection API
+# Real-time fraud decisions must complete within the transaction window
+# Spike pattern — models correlated payment bursts
+
+service: fraud-detection-api
+endpoint: /v1/fraud/evaluate
+
+slo:
+  p99_response_ms: 100
+  p95_response_ms: 75
+  error_rate_pct: 0.1
+
+load:
+  peak_users: 50000
+  ramp_duration_seconds: 10
+  steady_state_seconds: 180
+  load_pattern: spike
+
+environment: staging
+
+tags:
+  team: fraud-prevention
+  priority: p1
+  criticality: mission-critical
