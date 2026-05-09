@@ -1,0 +1,25 @@
+# NFR: Authentication API
+# Baseline established for migration parity validation
+# Linear pattern — standard regression baseline
+
+service: auth-api
+endpoint: /v1/auth/token
+
+slo:
+  p99_response_ms: 200
+  p95_response_ms: 150
+  error_rate_pct: 0.1
+
+load:
+  peak_users: 75000
+  ramp_duration_seconds: 120
+  steady_state_seconds: 300
+  ramp_down_seconds: 60
+  load_pattern: linear
+
+environment: staging
+
+tags:
+  team: identity
+  priority: p1
+  test_type: migration-baseline
